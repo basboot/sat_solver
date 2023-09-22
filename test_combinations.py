@@ -19,9 +19,9 @@ VALUES = list("01")
 # ]
 
 guesses = [
-    ("100", 1),
-    ("010", 1),
-    ("001", 1),
+    ("101", 1),
+    ("011", 1),
+    ("000", 1),
 ]
 
 
@@ -91,6 +91,30 @@ def get_lowerbound_clauses(guess, correct):
 if __name__ == '__main__':
     # guess = ['01', '11', '20']
     cnf = CNF()
+
+    # initial constrainsts: numbers must be unique
+
+    # one value must be true for each position
+    variables_positions = []
+    for pos in POSITIONS:
+        clause = []
+        vars = []
+        for value in VALUES:
+            clause.append(variables[pos + value])
+            vars.append(variables[pos + value])
+        cnf.append(clause)
+        variables_positions.append(vars)
+
+    # no more than one can be true
+
+    # TODO: create combination of 2 per position
+    for var_pos in variables_positions:
+        for illegal_combnation in itertools.combinations(var_pos, 2):
+            clause = []
+            for illegal_var in illegal_combnation:
+                clause.append(-illegal_var)
+            cnf.append(clause)
+
 
     for turn in guesses:
         print("--------------")
