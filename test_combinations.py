@@ -204,7 +204,10 @@ if __name__ == '__main__':
         assert correct < len(POSITIONS), "answer found, stop"
 
         upperbound_clauses = get_upperbound_clauses(guess, correct)
-        lowerbound_clauses = get_lowerbound_clauses(guess, correct)
+
+        # small optimization
+        lowerbound_clauses = get_lowerbound_clauses(guess, correct) if correct > 0 else []
+
 
         for clause in upperbound_clauses + lowerbound_clauses:
             cnf.append(clause)
