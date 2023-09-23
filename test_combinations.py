@@ -3,22 +3,22 @@ from pysat.solvers import Solver
 from pysat.formula import CNF
 
 
-# POSITIONS = list("01234567")
-# VALUES = list("0123456789")
-#
-# # 03100051
-# guesses = [
-#     ("68076675", 0),
-#     ("41639532", 1),
-#     ("19098806", 1),
-#     ("88045343", 1),
-#     ("52698367", 1),
-#     ("40429823", 0),
-#     ("19440636", 3),
-#     ("87429843", 0),
-#     ("92075423", 0),
-#     ("15371510", 0),
-# ]
+POSITIONS = list("01234567")
+VALUES = list("0123456789")
+
+# 59140052
+guesses = [
+    ("68076675", 0),
+    ("41639532", 1),
+    ("19098806", 1),
+    ("88045343", 1),
+    ("52698367", 1),
+    ("40429823", 0),
+    ("19440636", 3),
+    ("87429843", 0),
+    ("92075423", 0),
+    ("15371510", 0),
+]
 
 # POSITIONS = list("012")
 # VALUES = list("01")
@@ -31,16 +31,16 @@ from pysat.formula import CNF
 #     ("001", 1),
 # ]
 
-POSITIONS = list("0123")
-VALUES = list("012")
-
-# 3020
-guesses = [
-    ("1222", 1),
-    ("2122", 1),
-    ("2212", 1),
-    ("2221", 1),
-]
+# POSITIONS = list("0123")
+# VALUES = list("012")
+#
+# # 3020
+# guesses = [
+#     ("1222", 1),
+#     ("2122", 1),
+#     ("2212", 1),
+#     ("2221", 1),
+# ]
 
 
 variables = {}
@@ -54,6 +54,18 @@ for pos in POSITIONS:
         reverse_variables[n_variables] = "X_" + pos + val
         reverse_variables[-n_variables] = "~X_" + pos + val
 n_initial_variables = n_variables
+
+def create_new_variable():
+    global n_variables
+    global variables
+    global reverse_variables
+
+    n_variables += 1
+    variables["helper" + str(n_variables)] = n_variables
+    reverse_variables[n_variables] = "helper_" + str(n_variables)
+    reverse_variables[-n_variables] = "~helper_" + str(n_variables)
+
+    return n_variables
 
 
 def show_clauses(clauses, cnf=True):
@@ -79,7 +91,6 @@ def get_upperbound_clauses(guess, correct):
             clause.append(-variables[variable_name])
         upperbound_clauses.append(clause)
 
-    print(upperbound_clauses)
     show_clauses(upperbound_clauses)
 
     return upperbound_clauses
@@ -94,11 +105,6 @@ def dnf_2_cnf_distributive(dnf_clauses):
     return dnf_clauses
 
 def dnf_2_cnf(dnf_clauses):
-    print("bv", dnf_clauses)
-    global n_variables
-    global variables
-    global reverse_variables
-
     # convert to cnf by introducing a new variable for each conjunction clause in dnf clause
     # new_var <-> (conjunction), which can be translated to cnf as:
     # each part of conjunction must be true, or not new_var (clause's below)
@@ -110,32 +116,21 @@ def dnf_2_cnf(dnf_clauses):
     for dnf_clause in dnf_clauses:
         # create helper var
         # TODO: move to function
-        n_variables += 1
-        variables["helper" + str(n_variables)] = n_variables
-        reverse_variables[n_variables] = "helper_" + str(n_variables)
-        reverse_variables[-n_variables] = "~helper_" + str(n_variables)
-
-        print(">", dnf_clause)
-
+        helper = create_new_variable()
         # n_variables is the latest var, so this is the helper var
-        final_clause = [n_variables]
-        overall_clause.append(n_variables)
+        final_clause = [helper]
+        overall_clause.append(helper)
         for var in dnf_clause:
             final_clause.append(-var)
 
-            clause = [-n_variables]
+            clause = [-helper]
             clause.append(var)
 
             cnf_clauses.append(clause)
-            print(clause)
 
         cnf_clauses.append(final_clause)
 
-
-        print("...", cnf_clauses)
-
-        cnf_clauses.append(overall_clause)
-
+    cnf_clauses.append(overall_clause)
 
     return cnf_clauses
 
@@ -149,12 +144,10 @@ def get_lowerbound_clauses(guess, correct):
             clause.append(variables[variable_name])
         lowerbound_clauses_dnf.append(clause)
 
-    print(lowerbound_clauses_dnf)
-    show_clauses(lowerbound_clauses_dnf, cnf=False)
+    #show_clauses(lowerbound_clauses_dnf, cnf=False)
 
     lowerbound_clauses = dnf_2_cnf(lowerbound_clauses_dnf)
 
-    print(lowerbound_clauses)
     show_clauses(lowerbound_clauses)
 
     return lowerbound_clauses
@@ -215,9 +208,6 @@ if __name__ == '__main__':
 
         for clause in upperbound_clauses + lowerbound_clauses:
             cnf.append(clause)
-
-        print("clauses", cnf.clauses)
-
 
         with Solver(bootstrap_with=cnf) as solver:
             # 1.1 call the solver for this formula:
