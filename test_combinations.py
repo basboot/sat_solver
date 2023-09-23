@@ -2,9 +2,11 @@ import itertools
 from pysat.solvers import Solver
 from pysat.formula import CNF
 
-POSITIONS = list("012")
-VALUES = list("01")
 
+# POSITIONS = list("01234567")
+# VALUES = list("0123456789")
+#
+# # 03100051
 # guesses = [
 #     ("68076675", 0),
 #     ("41639532", 1),
@@ -18,32 +20,33 @@ VALUES = list("01")
 #     ("15371510", 0),
 # ]
 
+# POSITIONS = list("012")
+# VALUES = list("01")
+#
 # guesses = [
-#     ("1234", 0),
-#     ("0987", 1),
-#     ("1111", 1),
-#     ("9821", 1),
-#     ("8733", 1),
-#     ("9541", 0),
-#     ("0623", 3),
-#     ("6430", 0),
-#     ("4614", 0),
-#     ("9692", 0),
+#     # ("011", 2),
+#     ("110", 2),
+#     # ("100", 1),
+#     ("010", 1),
+#     ("001", 1),
 # ]
 
+POSITIONS = list("0123")
+VALUES = list("012")
+
+# 3020
 guesses = [
-    # ("011", 2),
-    ("110", 2),
-    # ("100", 1),
-    ("010", 1),
-    ("001", 1),
+    ("1222", 1),
+    ("2122", 1),
+    ("2212", 1),
+    ("2221", 1),
 ]
 
 
 variables = {}
 reverse_variables = {}
 n_variables = 0
-n_initial_variables = 0;
+n_initial_variables = 0
 for pos in POSITIONS:
     for val in VALUES:
         n_variables+=1
@@ -90,14 +93,20 @@ def dnf_2_cnf_distributive(dnf_clauses):
 
     return dnf_clauses
 
-# helper vars
 def dnf_2_cnf(dnf_clauses):
     print("bv", dnf_clauses)
     global n_variables
     global variables
     global reverse_variables
 
+    # convert to cnf by introducing a new variable for each conjunction clause in dnf clause
+    # new_var <-> (conjunction), which can be translated to cnf as:
+    # each part of conjunction must be true, or not new_var (clause's below)
+    # new var must be true, or not a part of the conjuction (final_clause below)
+    # one of the conjunctions must be true, so one of the new vars (overall_clause below)
+
     cnf_clauses = []
+    overall_clause = []
     for dnf_clause in dnf_clauses:
         # create helper var
         # TODO: move to function
@@ -106,27 +115,29 @@ def dnf_2_cnf(dnf_clauses):
         reverse_variables[n_variables] = "helper_" + str(n_variables)
         reverse_variables[-n_variables] = "~helper_" + str(n_variables)
 
+        print(">", dnf_clause)
 
+        # n_variables is the latest var, so this is the helper var
+        final_clause = [n_variables]
+        overall_clause.append(n_variables)
         for var in dnf_clause:
-            clause = []
-            clause.append(-n_variables)
+            final_clause.append(-var)
+
+            clause = [-n_variables]
             clause.append(var)
+
             cnf_clauses.append(clause)
             print(clause)
 
-        clause = [n_variables]
-        for var in dnf_clause:
-            clause.append(-var)
-        cnf_clauses.append(clause)
-        print(clause)
+        cnf_clauses.append(final_clause)
+
 
         print("...", cnf_clauses)
-        # exit()
+
+        cnf_clauses.append(overall_clause)
 
 
     return cnf_clauses
-
-
 
 def get_lowerbound_clauses(guess, correct):
     # define lowerbound >= correct, als dnf
@@ -149,8 +160,20 @@ def get_lowerbound_clauses(guess, correct):
     return lowerbound_clauses
 
 if __name__ == '__main__':
+
+    # print(variables)
+    #
+    # dnf_tst = [[1, 2], [3, 4]]
+    # show_clauses(dnf_tst, cnf=False)
+    #
+    # show_clauses(dnf_2_cnf_distributive(dnf_tst))
+    # show_clauses(dnf_2_cnf_new(dnf_tst))
+    #
+    #
+    # exit()
     # guess = ['01', '11', '20']
     cnf = CNF()
+
 
     # initial constrainsts: numbers must be unique
 
