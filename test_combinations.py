@@ -10,30 +10,47 @@ VALUES = list("01")
 #     ("41639532", 1),
 #     ("19098806", 1),
 #     ("88045343", 1),
-# 52698367 1 goed
-# 40429823 0 goed
-# 19440636 3 goed
-# 87429843 0 goed
-# 92075423 0 goed
-# 15371510 0 goed
+#     ("52698367", 1),
+#     ("40429823", 0),
+#     ("19440636", 3),
+#     ("87429843", 0),
+#     ("92075423", 0),
+#     ("15371510", 0),
+# ]
+
+# guesses = [
+#     ("1234", 0),
+#     ("0987", 1),
+#     ("1111", 1),
+#     ("9821", 1),
+#     ("8733", 1),
+#     ("9541", 0),
+#     ("0623", 3),
+#     ("6430", 0),
+#     ("4614", 0),
+#     ("9692", 0),
 # ]
 
 guesses = [
-    ("101", 1),
-    ("011", 1),
-    ("000", 1),
+    # ("011", 2),
+    # ("110", 2),
+    ("100", 1),
+    ("010", 1),
+    ("001", 1),
 ]
 
 
 variables = {}
 reverse_variables = {}
 n_variables = 0
+n_initial_variables = 0;
 for pos in POSITIONS:
     for val in VALUES:
         n_variables+=1
         variables[pos + val] = n_variables
         reverse_variables[n_variables] = "X_" + pos + val
         reverse_variables[-n_variables] = "~X_" + pos + val
+n_initial_variables = n_variables
 
 
 def show_clauses(clauses, cnf=True):
@@ -64,6 +81,53 @@ def get_upperbound_clauses(guess, correct):
 
     return upperbound_clauses
 
+def dnf_2_cnf_distributive(dnf_clauses):
+    dnf_product = itertools.product(*dnf_clauses)
+
+    dnf_clauses = []
+    for clause in dnf_product:
+        dnf_clauses.append(clause)
+
+    return dnf_clauses
+
+# helper vars
+def dnf_2_cnf(dnf_clauses):
+    print("bv", dnf_clauses)
+    global n_variables
+    global variables
+    global reverse_variables
+
+    cnf_clauses = []
+    for dnf_clause in dnf_clauses:
+        # create helper var
+        # TODO: move to function
+        n_variables += 1
+        variables["helper" + str(n_variables)] = n_variables
+        reverse_variables[n_variables] = "helper_" + str(n_variables)
+        reverse_variables[-n_variables] = "~helper_" + str(n_variables)
+
+
+        for var in dnf_clause:
+            clause = []
+            clause.append(-n_variables)
+            clause.append(var)
+            cnf_clauses.append(clause)
+            print(clause)
+
+        clause = [n_variables]
+        for var in dnf_clause:
+            clause.append(-var)
+        cnf_clauses.append(clause)
+        print(clause)
+
+        print("...", cnf_clauses)
+        # exit()
+
+
+    return cnf_clauses
+
+
+
 def get_lowerbound_clauses(guess, correct):
     # define lowerbound >= correct, als dnf
     lowerbound_clauses_dnf = []
@@ -77,11 +141,7 @@ def get_lowerbound_clauses(guess, correct):
     print(lowerbound_clauses_dnf)
     show_clauses(lowerbound_clauses_dnf, cnf=False)
 
-    lowerbound_product = itertools.product(*lowerbound_clauses_dnf)
-
-    lowerbound_clauses = []
-    for clause in lowerbound_product:
-        lowerbound_clauses.append(clause)
+    lowerbound_clauses = dnf_2_cnf(lowerbound_clauses_dnf)
 
     print(lowerbound_clauses)
     show_clauses(lowerbound_clauses)
@@ -144,7 +204,7 @@ if __name__ == '__main__':
             print('and the model is:', solver.get_model())
 
             for value in solver.get_model():
-                if value > 0:
+                if value > 0 and value < n_initial_variables + 1:
                     print(reverse_variables[value])
 
 
