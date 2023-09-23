@@ -3,22 +3,22 @@ from pysat.solvers import Solver
 from pysat.formula import CNF
 
 
-# POSITIONS = list("01234567")
-# VALUES = list("0123456789")
-#
-# # 59140052
-# guesses = [
-#     ("68076675", 0),
-#     ("41639532", 1),
-#     ("19098806", 1),
-#     ("88045343", 1),
-#     ("52698367", 1),
-#     ("40429823", 0),
-#     ("19440636", 3),
-#     ("87429843", 0),
-#     ("92075423", 0),
-#     ("15371510", 0),
-# ]
+POSITIONS = list("01234567")
+VALUES = list("0123456789")
+
+# 59140052
+guesses = [
+    ("68076675", 0),
+    ("41639532", 1),
+    ("19098806", 1),
+    ("88045343", 1),
+    ("52698367", 1),
+    ("40429823", 0),
+    ("19440636", 3),
+    ("87429843", 0),
+    ("92075423", 0),
+    ("15371510", 0),
+]
 
 # POSITIONS = list("012")
 # VALUES = list("01")
@@ -31,18 +31,18 @@ from pysat.formula import CNF
 #     ("001", 1),
 # ]
 
-POSITIONS = list("01234567")
-VALUES = list("01")
-
-# 00101010
-# 11010101
-guesses = [
-    ("00000000", 5),
-    ("01011010", 5),
-    ("01111000", 5),
-    ("00111100", 5),
-    ("11101011", 5),
-]
+# POSITIONS = list("01234567")
+# VALUES = list("01")
+#
+# # 00101010 alles goed
+# # 11010101 alles fout
+# guesses = [
+#     ("00000000", 5),
+#     ("01011010", 5),
+#     ("01111000", 5),
+#     ("00111100", 5),
+#     ("11101011", 5),
+# ]
 
 
 variables = {}
@@ -154,6 +154,21 @@ def get_lowerbound_clauses(guess, correct):
 
     return lowerbound_clauses
 
+def show_solution(model):
+    negated_solution = []
+    full_solution = ""
+    for i in range(len(model)):
+        value = model[i]
+        if 0 < value < n_initial_variables + 1:
+            negated_solution.append(-value)
+            print(reverse_variables[value], end=' ')
+            full_solution += reverse_variables[value][-1]
+    print(full_solution)
+
+
+
+    return negated_solution
+
 if __name__ == '__main__':
 
     for turn in guesses:
@@ -224,17 +239,16 @@ if __name__ == '__main__':
             # 1.2 the formula is satisfiable and so has a model:
             print('and the model is:', solver.get_model())
 
-            negated_solution = []
-            for value in solver.get_model():
-                if 0 < value < n_initial_variables + 1:
-                    negated_solution.append(-value)
-                    print(reverse_variables[value])
+            negated_solution = show_solution(solver.get_model())
 
             # check for uniqueness
             cnf_alternative = cnf.copy()
             cnf_alternative.append(negated_solution)
             with Solver(bootstrap_with=cnf_alternative) as solver_alternative:
                 print('solution is', "not" if solver_alternative.solve() else "", "unique")
+                if solver_alternative.solve():
+                    print('(Counter)example:')
+                    show_solution(solver_alternative.get_model())
 
 
 
