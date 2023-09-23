@@ -33,8 +33,8 @@ VALUES = list("01")
 
 guesses = [
     # ("011", 2),
-    # ("110", 2),
-    ("100", 1),
+    ("110", 2),
+    # ("100", 1),
     ("010", 1),
     ("001", 1),
 ]
@@ -203,12 +203,17 @@ if __name__ == '__main__':
             # 1.2 the formula is satisfiable and so has a model:
             print('and the model is:', solver.get_model())
 
+            negated_solution = []
             for value in solver.get_model():
-                if value > 0 and value < n_initial_variables + 1:
+                if 0 < value < n_initial_variables + 1:
+                    negated_solution.append(-value)
                     print(reverse_variables[value])
 
-
-# TODO: toevoegen dat er maar 1 waar mag/moet zijn per positie
+            # check for uniqueness
+            cnf_alternative = cnf.copy()
+            cnf_alternative.append(negated_solution)
+            with Solver(bootstrap_with=cnf_alternative) as solver_alternative:
+                print('solution is', "not" if solver_alternative.solve() else "", "unique")
 
 
 
