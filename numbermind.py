@@ -76,10 +76,10 @@ def show_clauses(clauses, cnf=True):
         for j in range(len(clauses[i])):
             print(reverse_variables[clauses[i][j]], end='')
             if j < len(clauses[i]) - 1:
-                print(" \\/ " if cnf else " /\\ ", end='')
+                print(" ∨ " if cnf else " ∧ ", end='')
         print(")", end='')
         if i < len(clauses) - 1:
-            print(" /\\ " if cnf else " \\/ ", end='')
+            print(" ∧ " if cnf else " ∨ ", end='')
     print()
 
 def get_upperbound_clauses(guess, correct):
@@ -163,7 +163,7 @@ def show_solution(model):
             negated_solution.append(-value)
             print(reverse_variables[value], end=' ')
             full_solution += reverse_variables[value][-1]
-    print(full_solution)
+    print(f"({full_solution})")
 
 
 
