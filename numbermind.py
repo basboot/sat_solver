@@ -245,7 +245,7 @@ if __name__ == '__main__':
             cnf_alternative = cnf.copy()
             cnf_alternative.append(negated_solution)
             with Solver(bootstrap_with=cnf_alternative) as solver_alternative:
-                print('solution is', "not" if solver_alternative.solve() else "", "unique")
+                print(f"solution is {'not' if solver_alternative.solve() else ''} unique")
                 if solver_alternative.solve():
                     print('(Counter)example:')
                     show_solution(solver_alternative.get_model())
