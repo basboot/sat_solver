@@ -233,19 +233,22 @@ if __name__ == '__main__':
             cnf.append(clause)
 
         with Solver(bootstrap_with=cnf) as solver:
-            # 1.1 call the solver for this formula:
             print('formula is', f'{"s" if solver.solve() else "uns"}atisfiable')
 
-            # 1.2 the formula is satisfiable and so has a model:
-            print('and the model is:', solver.get_model())
-
+            # show solution and get a clause with all values negated to try to find
+            # a different solution for the uniqueness check
             negated_solution = show_solution(solver.get_model())
 
             # check for uniqueness
             cnf_alternative = cnf.copy()
+            # add negated clause (~value1 v ~value2, ...)
             cnf_alternative.append(negated_solution)
+
+            # solve again for uniqueness check
             with Solver(bootstrap_with=cnf_alternative) as solver_alternative:
                 print(f"solution is {'not' if solver_alternative.solve() else ''} unique")
+
+                # solution found => not unique, show counterexample
                 if solver_alternative.solve():
                     print('(Counter)example:')
                     show_solution(solver_alternative.get_model())
