@@ -3,22 +3,22 @@ from pysat.solvers import Solver
 from pysat.formula import CNF
 
 
-POSITIONS = list("01234567")
-VALUES = list("0123456789")
-
-# 59140052
-guesses = [
-    ("68076675", 0),
-    ("41639532", 1),
-    ("19098806", 1),
-    ("88045343", 1),
-    ("52698367", 1),
-    ("40429823", 0),
-    ("19440636", 3),
-    ("87429843", 0),
-    ("92075423", 0),
-    ("15371510", 0),
-]
+# POSITIONS = list("01234567")
+# VALUES = list("0123456789")
+#
+# # 59140052
+# guesses = [
+#     ("68076675", 0),
+#     ("41639532", 1),
+#     ("19098806", 1),
+#     ("88045343", 1),
+#     ("52698367", 1),
+#     ("40429823", 0),
+#     ("19440636", 3),
+#     ("87429843", 0),
+#     ("92075423", 0),
+#     ("15371510", 0),
+# ]
 
 # POSITIONS = list("012")
 # VALUES = list("01")
@@ -31,18 +31,18 @@ guesses = [
 #     ("001", 1),
 # ]
 
-# POSITIONS = list("01234567")
-# VALUES = list("01")
-#
-# # 00101010 alles goed
-# # 11010101 alles fout
-# guesses = [
-#     ("00000000", 5),
-#     ("01011010", 5),
-#     ("01111000", 5),
-#     ("00111100", 5),
-#     ("11101011", 5),
-# ]
+POSITIONS = list("01234567")
+VALUES = list("01")
+
+# 00101010 alles goed
+# 11010101 alles fout
+guesses = [
+    ("00000000", 5),
+    ("01011010", 5),
+    ("01111000", 5),
+    ("00111100", 5),
+    ("11101011", 5),
+]
 
 
 variables = {}
@@ -57,15 +57,19 @@ for pos in POSITIONS:
         reverse_variables[-n_variables] = "~X_" + pos + val
 n_initial_variables = n_variables
 
+
+n_helper_variables = 0
 def create_new_variable():
     global n_variables
     global variables
     global reverse_variables
+    global n_helper_variables
 
     n_variables += 1
+    n_helper_variables += 1
     variables["helper" + str(n_variables)] = n_variables
-    reverse_variables[n_variables] = "helper_" + str(n_variables)
-    reverse_variables[-n_variables] = "~helper_" + str(n_variables)
+    reverse_variables[n_variables] = "helper_" + str(n_helper_variables)
+    reverse_variables[-n_variables] = "~helper_" + str(n_helper_variables)
 
     return n_variables
 
@@ -174,22 +178,10 @@ if __name__ == '__main__':
     for turn in guesses:
         print(f"{turn[0]} {turn[1]} goed")
 
-    # print(variables)
-    #
-    # dnf_tst = [[1, 2], [3, 4]]
-    # show_clauses(dnf_tst, cnf=False)
-    #
-    # show_clauses(dnf_2_cnf_distributive(dnf_tst))
-    # show_clauses(dnf_2_cnf_new(dnf_tst))
-    #
-    #
-    # exit()
-    # guess = ['01', '11', '20']
     cnf = CNF()
 
 
-    # initial constrainsts: numbers must be unique
-
+    # initial constraints: numbers must be unique
     # one value must be true for each position
     variables_positions = []
     for pos in POSITIONS:
@@ -202,8 +194,6 @@ if __name__ == '__main__':
         variables_positions.append(vars)
 
     # no more than one can be true
-
-    # TODO: create combination of 2 per position
     for var_pos in variables_positions:
         for illegal_combnation in itertools.combinations(var_pos, 2):
             clause = []
@@ -211,7 +201,7 @@ if __name__ == '__main__':
                 clause.append(-illegal_var)
             cnf.append(clause)
 
-
+    # add min/max clauses for each guess
     for turn in guesses:
         print("--------------")
         print(turn)
@@ -223,17 +213,22 @@ if __name__ == '__main__':
 
         assert correct < len(POSITIONS), "answer found, stop"
 
+        # create min/max clauses
         upperbound_clauses = get_upperbound_clauses(guess, correct)
 
         # small optimization
         lowerbound_clauses = get_lowerbound_clauses(guess, correct) if correct > 0 else []
 
-
+        # add clauses to problem
         for clause in upperbound_clauses + lowerbound_clauses:
             cnf.append(clause)
 
+        # solve problem (so far)
         with Solver(bootstrap_with=cnf) as solver:
+            # can it me solved?
+
             print('formula is', f'{"s" if solver.solve() else "uns"}atisfiable')
+            show_clauses(cnf.clauses)
 
             # show solution and get a clause with all values negated to try to find
             # a different solution for the uniqueness check
@@ -244,6 +239,7 @@ if __name__ == '__main__':
             # add negated clause (~value1 v ~value2, ...)
             cnf_alternative.append(negated_solution)
 
+
             # solve again for uniqueness check
             with Solver(bootstrap_with=cnf_alternative) as solver_alternative:
                 print(f"solution is {'not' if solver_alternative.solve() else ''} unique")
@@ -253,6 +249,8 @@ if __name__ == '__main__':
                     print('(Counter)example:')
                     show_solution(solver_alternative.get_model())
 
+
+        print("number of helper variables: ", n_helper_variables)
 
 
 
