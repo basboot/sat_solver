@@ -1,18 +1,36 @@
+import sys
+
 import aiger
 
 from aiger_sat import SolverWrapper
 
 import itertools
 
+sys.setrecursionlimit(100000)
+
+
 solver = SolverWrapper()  # defaults to Glucose4
 
-TIMESTEPS = 7  # timesteps after t0, so we have one timestep more
-CHARACTERS = ['w', 'g', 'c', 'f']
+# traditional river crossing
+# TIMESTEPS = 7  # timesteps after t0, so we have one timestep more
+# CHARACTERS = ['w', 'g', 'c', 'f']
+#
+# # dangerous character, is dangerous for characters, if not protected by character
+# DANGER = [('w', ['g'], 'f'), ('g', ['c'], 'f')]
+# BOAT_OPERATORS = ['f']
+# BOAT_SIZE = 2
+
+# 17 is possible
+TIMESTEPS = 17  # timesteps after t0, so we have one timestep more
+CHARACTERS = ['c', 'p', 'f', 'm', 'b1', 'b2', 'g1', 'g2']
 
 # dangerous character, is dangerous for characters, if not protected by character
-DANGER = [('w', ['g'], 'f'), ('g', ['c'], 'f')]
-BOAT_OPERATORS = ['f']
+DANGER = [('c', ['f', 'm', 'b1', 'b2', 'g1', 'g2'], 'p'), ('f', ['g1', 'g2'], 'm'), ('m', ['b1', 'b2'], 'f')]
+
+BOAT_OPERATORS = ['p', 'f', 'm']
 BOAT_SIZE = 2
+
+
 
 DUMMY = aiger.atom('dummy')
 
@@ -20,7 +38,7 @@ variables = {}
 reverse_variables = {}
 n_variables = 0
 
-for character in CHARACTERS:
+for character in CHARACTERS + ['boat']:
     for t in range(TIMESTEPS + 1):  # 0 to TIMESTEPS (incl)
         n_variables += 1
         variables[character + str(t)] = aiger.atom(character + str(t))
@@ -29,12 +47,12 @@ if __name__ == '__main__':
     # define start and goal
     # start with something undefined to combine the conjuction
     init = DUMMY
-    for character in CHARACTERS:
+    for character in CHARACTERS + ['boat']:
         init = init & ~variables[character + '0']
 
     # start with something undefined to combine the conjuction
     goal = DUMMY
-    for character in CHARACTERS:
+    for character in CHARACTERS + ['boat']:
         goal = goal & variables[character + str(TIMESTEPS)]
 
     expr = init & goal
@@ -57,14 +75,15 @@ if __name__ == '__main__':
 
     # define transitions
     for t in range(1, TIMESTEPS + 1):  # 1 to TIMESTEPS (incl)
+        # boat always crosses
+        boat_crosses = (variables['boat' + str(t - 1)] == ~variables['boat' + str(t)])
         # at least one boat operator must cross
         # start with a contradiction to combine the disjunction
         operator_crossing = DUMMY == ~DUMMY
         for boat_operator in BOAT_OPERATORS:
             operator_crossing = operator_crossing | (variables[boat_operator + str(t - 1)] == ~variables[boat_operator + str(t)])
 
-
-        # max two total crossing
+        # max boat size total crossings
         upperbound_combinations = itertools.combinations(CHARACTERS, BOAT_SIZE + 1)
         max_boat_size_crossings = DUMMY
         for combination in upperbound_combinations:
@@ -73,7 +92,14 @@ if __name__ == '__main__':
                 too_large_crossing = too_large_crossing & (variables[character + str(t - 1)] == ~variables[character + str(t)])
             max_boat_size_crossings = max_boat_size_crossings & ~too_large_crossing
 
-        expr = expr & operator_crossing & max_boat_size_crossings
+        # crossings can only be in the direction of the boat
+        legal_crossings = DUMMY
+        for character in CHARACTERS:
+            with_boat = (variables[character + str(t)] == variables['boat' + str(t)])
+            crossing = (variables[character + str(t - 1)] == ~variables[character + str(t)])
+            legal_crossings = legal_crossings & crossing.implies(with_boat)
+
+        expr = expr & boat_crosses & operator_crossing & max_boat_size_crossings & legal_crossings
 
     solver.add_expr(expr)
 
@@ -84,21 +110,25 @@ if __name__ == '__main__':
         print("Model", model)
 
         for t in range(TIMESTEPS + 1):
-            print(f"t = {t}: ", end='')
+            print(f"t = {t}{' ' if t < 10 else ''}{' ' if t < 100 else ''}: ", end='')
             for character in CHARACTERS:
                 # 0 to TIMESTEPS (incl)
                 if not model[character + str(t)]:
                     print(f"{character} ", end='')
+                    if len(character) < 2:
+                        print(f" ", end='')
                 else:
-                    print(f"  ", end='')
+                    print(f"   ", end='')
 
             print(f"| ", end='')
             for character in CHARACTERS:
                 # 0 to TIMESTEPS (incl)
                 if model[character + str(t)]:
                     print(f"{character} ", end='')
+                    if len(character) < 2:
+                        print(f" ", end='')
                 else:
-                    print(f"  ", end='')
+                    print(f"   ", end='')
 
             print()
     else:
