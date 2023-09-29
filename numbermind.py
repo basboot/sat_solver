@@ -20,6 +20,35 @@ from pysat.formula import CNF
 #     ("15371510", 0),
 # ]
 
+POSITIONS = list("01234567")
+VALUES = list("0123456789")
+guesses = [
+    # ("19440636", 3),
+    # ("17450670", 2),
+    # ("43528232", 3),
+    # ("33508332", 5),
+    # ("56410886", 2),
+    # ("83485686", 2),
+    # ("39058903", 2),
+    # ("83351447", 2),
+    # ("73503693", 2),
+    ("35551662", 3),
+    # ("70855832", 2),
+    # ("32184926", 2),
+    ("63051611", 2),
+    ("23794135", 2),
+    # ("39956245", 2),
+    ("12658186", 2),
+    # ("30287032", 2),
+    ("52260399", 2),
+    ("87694356", 2),
+    ("37730883", 2),
+    # ("86288536", 2),
+    ("65473536", 2),
+]
+
+
+
 # POSITIONS = list("012")
 # VALUES = list("01")
 #
@@ -31,18 +60,18 @@ from pysat.formula import CNF
 #     ("001", 1),
 # ]
 
-POSITIONS = list("01234567")
-VALUES = list("01")
-
-# 00101010 alles goed
-# 11010101 alles fout
-guesses = [
-    ("00000000", 5),
-    ("01011010", 5),
-    ("01111000", 5),
-    ("00111100", 5),
-    ("11101011", 5),
-]
+# POSITIONS = list("01234567")
+# VALUES = list("01")
+#
+# # 00101010 alles goed
+# # 11010101 alles fout
+# guesses = [
+#     ("00000000", 5),
+#     ("01011010", 5),
+#     ("01111000", 5),
+#     ("00111100", 5),
+#     ("11101011", 5),
+# ]
 
 
 variables = {}
@@ -233,6 +262,8 @@ if __name__ == '__main__':
             # show solution and get a clause with all values negated to try to find
             # a different solution for the uniqueness check
             negated_solution = show_solution(solver.get_model())
+
+            print(f"Clauses: {len(cnf.clauses)}")
 
             # check for uniqueness
             cnf_alternative = cnf.copy()
